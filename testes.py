@@ -5,14 +5,17 @@ from skimage import measure
 from scipy.spatial import cKDTree
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-def get_scalar_field(points, normals, h, k, samples=20):
+def get_scalar_field(points, normals, h, k, samples=25):
     # arguments:
     # points: the point cloud (loaded from a .ply file)
     # normals: the point cloud's normals (also loaded from a .ply file)
     # h: parameter that determines the radius of influence of a point upon its neighbours
     # k: for k nearest neighbours
-    base_range = np.linspace(np.min(points), np.max(points), samples)
-    x, y, z = np.meshgrid(base_range, base_range, base_range)
+
+    x_range = np.linspace(np.min(points[:,0]), np.max(points[:,0]), samples)
+    y_range = np.linspace(np.min(points[:,1]), np.max(points[:,1]), samples)
+    z_range = np.linspace(np.min(points[:,2]), np.max(points[:,2]), samples)
+    x, y, z = np.meshgrid(x_range, y_range, z_range)
     n = points.shape[0]
 
     sample_points = np.vstack([x.ravel(), y.ravel(), z.ravel()]).T
@@ -75,7 +78,11 @@ def get_scalar_field(points, normals, h, k, samples=20):
     A += 1e-6 * np.eye(5) 
 
     b_hat = (W_diag * b) @ D
-    u_batch = np.linalg.solve(A, b_hat)
+
+    #linha alinhar as dimensões das matrizes A e b_hat
+    b_hat_fixed = b_hat[:,:,np.newaxis]
+    #squeeze(-1) retira a ultima dimensão adicionada na linha anterior
+    u_batch = np.linalg.solve(A, b_hat_fixed).squeeze(-1)
 
     P_poly = np.zeros((M, 5))
     P_poly[:, 0] = 1
@@ -88,11 +95,11 @@ def get_scalar_field(points, normals, h, k, samples=20):
 
     dom_w_flat[active_samples < 4] = 100.0
 
-    return dom_w_flat.reshape(x.shape())
+    return dom_w_flat.reshape(x.shape)
 
-def plot_surface(points, ax, scalar_field, color, samples=20):
-    min_range = np.min(points)
-    max_range = np.max(points)
+def plot_surface(points, ax, scalar_field, color, samples=25):
+    min_range = 0
+    max_range = 1
     verts, faces, _, _ = measure.marching_cubes(scalar_field, level=0.0)
     
     spacing = (max_range - min_range) / (samples - 1)
@@ -117,7 +124,7 @@ def plot_surface(points, ax, scalar_field, color, samples=20):
 
 
 # reads the point clouds from a .ply file using the open3d library which was imported in line 1
-pcd = o3d.io.read_point_cloud("point_clouds/bun_zipper_mesh.ply")
+pcd = o3d.io.read_point_cloud("point_clouds/bun_zipper_res4.ply")
 pcd_points = np.asarray(pcd.points)
 pcd_normals = np.asarray(pcd.normals)
 
@@ -130,3 +137,5 @@ ax = fig.add_subplot(1, 2, 1, projection='3d')
 plot_surface(pcd_points, ax, apss_field, color='crimson')
 
 o3d.visualization.draw_geometries([pcd], point_show_normal=True)
+
+plt.show()
