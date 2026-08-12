@@ -3,7 +3,7 @@ from skimage import measure
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import open3d as o3d
 
-def plot_surface(points, ax, scalar_field, color, samples=25):
+def plot_surface(points, ax, scalar_field, color, file_name,samples=25):
 
     #finding the boundaries of the point cloud
     min_x, max_x = np.min(points[:,0]), np.max(points[:,0])
@@ -25,7 +25,7 @@ def plot_surface(points, ax, scalar_field, color, samples=25):
         mesh.set_linewidth(0.2)
         ax.add_collection3d(mesh)
 
-        export_mesh(verts, faces)
+        export_mesh(verts, faces, file_name)
 
     except ValueError:
         print("Warning: no zero level surface found")    
@@ -42,11 +42,11 @@ def plot_surface(points, ax, scalar_field, color, samples=25):
     
 
 
-def export_mesh(verts, faces, file_name="bunny_reconstructed128.ply"):
+def export_mesh(verts, faces, file_name):
     mesh = o3d.geometry.TriangleMesh()
     mesh.vertices = o3d.utility.Vector3dVector(verts)
     mesh.triangles = o3d.utility.Vector3iVector(faces)
-
+    file_name = file_name + ".ply"
    #mesh.compute_vertex_normals()
 
     o3d.io.write_triangle_mesh(file_name,mesh)

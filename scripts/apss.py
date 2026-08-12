@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.spatial import cKDTree
+from tqdm import tqdm
 
 def get_scalar_field(points, normals, h, k, samples=25, batch_size=2000):
     # arguments:
@@ -31,7 +32,7 @@ def get_scalar_field(points, normals, h, k, samples=25, batch_size=2000):
     
 
     #processing each point separately and constructing the matrixes only for the points inside of the roi
-    for i in range(M):
+    for i in tqdm(range(M), desc="Processing points"):
         p_i = sample_points[i]
         roi_i = roi_all[i]
 
