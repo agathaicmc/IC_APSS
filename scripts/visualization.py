@@ -5,19 +5,17 @@ import open3d as o3d
 
 def plot_surface(points, ax, scalar_field, color, file_name,samples=25):
 
-    #finding the boundaries of the point cloud
-    min_x, max_x = np.min(points[:,0]), np.max(points[:,0])
-    min_y, max_y = np.min(points[:,1]), np.max(points[:,1])
-    min_z, max_z = np.min(points[:,2]), np.max(points[:,2])
-    # picking the biggest and smallest to keep the cubic image aspect
-    global_min = min(min_x, min_y, min_z)
-    global_max = max(max_x, max_y, max_z)
+
+
     try:
 
         verts, faces, _, _ = measure.marching_cubes(scalar_field, level=0.0)
 
-        spacing = (global_max - global_min) / (samples - 1)
-        verts = global_min + verts * spacing
+        vector_min = np.min(points, axis=0)
+        vector_max = np.max(points, axis=0)
+
+        spacing = (vector_max - vector_min) / (samples - 1)
+        verts = vector_min + verts * spacing
         
         mesh = Poly3DCollection(verts[faces], alpha=0.8, edgecolor='none')
         mesh.set_facecolor(color)

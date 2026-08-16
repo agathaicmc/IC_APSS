@@ -4,6 +4,7 @@ import numpy as np
 
 
 from apss import get_scalar_field
+from apsstest import get_scalar_field_test
 from visualization import plot_surface
 
 def main():
@@ -14,10 +15,9 @@ def main():
     pcd_normals = np.asarray(pcd.normals)
 
     file_name = input("Type the name of the file that will be created\n")
-    # processing datas
-    print("Calculating scalar field...")
+    # processing data
     samples = 64
-    apss_field = get_scalar_field(pcd_points,pcd_normals, h=1.8,k=7,samples=samples)
+    apss_field = get_scalar_field_test(pcd_points,pcd_normals, h=2.1,k=10,samples=samples)
 
     #rendering surface
     print("Rendering...")
