@@ -1,8 +1,5 @@
 import numpy as np
 from scipy.spatial import cKDTree
-from tqdm import tqdm
-import numpy as np
-from scipy.spatial import cKDTree
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
 from tqdm import tqdm 
@@ -34,24 +31,30 @@ def process_chunk(start, end):
         p_i = sample_points[i]
         roi_i = roi_all[i]
 
-        #getting all the points inside the roi
-        idx = kd_tree.query_ball_point(p_i, r=roi_i)
-        n_local = len(idx)
+        # finding the distance and index of the 100 nearest neighbours
+        # 100 being an arbitrary cap on the number of neighbours to not impact performance
+        dists, idx = kd_tree.query(p_i, k=100)
 
+        valid_mask = dists < roi_i
+        # filters the entries in idx that correspond to points satisfying the condition in valid_mask
+        idx = idx[valid_mask]
+
+        n_local = len(idx)
         if n_local < 4:
             continue
+
+
 
         local_points = points[idx]
         local_normals = normals[idx]
 
         # matrix that stores the distances between the current point and its locals
-        dif = p_i - local_points
-        dist_sq = np.sum(dif**2, axis=1)
+        dist_sq = dists[valid_mask] ** 2
         ratio_sq = dist_sq / (roi_i**2)
         # weight kernel
         weights = np.where(ratio_sq < 1.0, (1.0 - ratio_sq)**4, 0.0)
 
-        #matrix construction based on the reference paper
+        # matrix construction based on the reference paper
         
         b_local = np.zeros(4 * n_local)
         b_local[1::4] = local_normals[:, 0]
@@ -100,7 +103,7 @@ def process_chunk(start, end):
     return start, end, w_chunk
 
 
-def get_scalar_field_test(points, normals, h, k, samples=25):
+def get_scalar_field(points, normals, h, k, samples=25):
     # arguments:
         # points: the point cloud (loaded from a .ply file)
         # normals: the point cloud's normals (also loaded from a .ply file)
@@ -139,11 +142,10 @@ def get_scalar_field_test(points, normals, h, k, samples=25):
         for i in range(num_chunks):
             start = i * chunk_size
             end = min(M, (i + 1) * chunk_size)
-            if start < M:
-                break
-            futures.append(
-                executor.submit(process_chunk, start, end   )
-            )
+            if start < M:    
+                futures.append(
+                    executor.submit(process_chunk, start, end   )
+                )
 
         # upon completion, each core's chunk will be pieced together in the w_chunk matrix
         with tqdm(total=M, desc="Computing the scalar fields...", unit="pts") as pbar:
