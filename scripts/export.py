@@ -30,6 +30,6 @@ def export_mesh(verts, faces, file_name):
     mesh.vertices = o3d.utility.Vector3dVector(verts)
     mesh.triangles = o3d.utility.Vector3iVector(faces)
     file_name = file_name + ".ply"
-   #mesh.compute_vertex_normals()
+    mesh.compute_vertex_normals()
 
     o3d.io.write_triangle_mesh(file_name,mesh)
