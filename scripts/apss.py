@@ -8,32 +8,32 @@ from tqdm import tqdm
 worker_env = {}
 
 #initializing a dictionary with the relevant parameters to avoid passing these as arguments and use them by reference
-def init_worker(points, normals, sample_points, roi_all):
+def init_worker(points, normals, sample_points):
     worker_env['points'] = points
     worker_env['normals'] = normals
     worker_env['sample_points'] = sample_points
-    worker_env['roi_all'] = roi_all
     worker_env['kd_tree'] = cKDTree(points)
 
 
 # function that will apply the core of the method to a chunk of the points
 # meant to run in parallel 
-def process_chunk(start, end):
+def process_chunk(start, end, h, k):
     points = worker_env['points']
     normals = worker_env['normals']
     sample_points = worker_env['sample_points']
-    roi_all = worker_env['roi_all']
     kd_tree = worker_env['kd_tree']
 
     w_chunk = np.full(end - start, 100.0)
 
     for i in range(start, end):
         p_i = sample_points[i]
-        roi_i = roi_all[i]
 
         # finding the distance and index of the 100 nearest neighbours
         # 100 being an arbitrary cap on the number of neighbours to not impact performance
         dists, idx = kd_tree.query(p_i, k=100)
+
+        # the radius of influence is the distance to the farthest neighbour, in this case will be the k-th neighbour due to dists being sorted
+        roi_i = max(dists[k - 1] * h, 1e-5)
 
         valid_mask = dists < roi_i
         # filters the entries in idx that correspond to points satisfying the condition in valid_mask
@@ -123,10 +123,6 @@ def get_scalar_field(points, normals, h, k, samples=25):
     kd_tree = cKDTree(points)
     w_dom_flat = np.full(M, 100.0)
 
-    print("Pre-processing the radius of influence (ROI)...")
-    k_dist, _ = kd_tree.query(sample_points, k=k)
-    roi_all = np.maximum(k_dist[:, -1] * h, 1e-5)
-
     num_cores = multiprocessing.cpu_count()
     
     # divide the total points in 100 chunks
@@ -137,14 +133,14 @@ def get_scalar_field(points, normals, h, k, samples=25):
     
     with ProcessPoolExecutor(max_workers=num_cores,
                             initializer=init_worker,
-                            initargs=(points,normals,sample_points,roi_all)) as executor:
+                            initargs=(points,normals,sample_points)) as executor:
         # assigns point chunks to the cores
         for i in range(num_chunks):
             start = i * chunk_size
             end = min(M, (i + 1) * chunk_size)
             if start < M:    
                 futures.append(
-                    executor.submit(process_chunk, start, end   )
+                    executor.submit(process_chunk, start, end, h, k)
                 )
 
         # upon completion, each core's chunk will be pieced together in the w_chunk matrix
