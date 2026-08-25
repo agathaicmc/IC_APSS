@@ -1,1 +1,3 @@
-Projeto de ic desenvolvido por Henry Alves e Agatha Oliveira
+Scientific Initiation project developed by Henry Alves and Agatha Oliveira
+
+TO-DO: make an actual README file
